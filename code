@@ -1,110 +1,127 @@
 pipeline {
     agent any
     
+    tools {
+        maven 'Maven 3.8.5' // Make sure this name matches your Jenkins Maven tool config
+    }
+
+    environment {
+        SONARQUBE_ENV = 'sonar-server' // Jenkins SonarQube config name
+        NOTIFY_EMAIL = 'angel4761.be23@chitkara.edu.in'
+    }
+
     stages {
-        // Stage 1: Build
+
         stage('Build') {
             steps {
                 echo 'Building the application...'
-                // Using Maven as build tool
                 sh 'mvn clean package'
             }
             post {
                 success {
-                    echo 'Build succeeded!'
+                    echo 'Build successful!'
                 }
                 failure {
-                    echo 'Build failed!'
-                    emailext body: 'Build stage failed! Check Jenkins for details.', subject: 'Build Failed', to: 'angel4761.be23@chitkara.edu.in'
+                    echo 'Build failed.'
+                    emailext(
+                        subject: 'Build Failed',
+                        body: 'Build stage failed. Please review Jenkins logs.',
+                        to: "${env.NOTIFY_EMAIL}"
+                    )
                 }
             }
         }
-        
-        // Stage 2: Unit and Integration Tests
+
         stage('Unit and Integration Tests') {
             steps {
-                echo 'Running unit and integration tests...'
-                // Using JUnit for unit tests and TestNG for integration tests
+                echo 'Running tests (JUnit/TestNG)...'
                 sh 'mvn test'
             }
             post {
                 always {
                     junit '**/target/surefire-reports/*.xml'
-                    emailext body: 'Unit and Integration Tests completed. Status: ${currentBuild.currentResult}', 
-                            subject: 'Test Results', 
-                            to: 'angel4761.be23@chitkara.edu.in',
-                            attachmentsPattern: '**/target/surefire-reports/*.xml'
+                    emailext(
+                        subject: 'Test Results',
+                        body: "Tests completed. Result: ${currentBuild.currentResult}",
+                        to: "${env.NOTIFY_EMAIL}",
+                        attachmentsPattern: '**/target/surefire-reports/*.xml'
+                    )
                 }
             }
         }
-        
-        // Stage 3: Code Analysis
+
         stage('Code Analysis') {
             steps {
-                echo 'Running code analysis...'
-                // Using SonarQube for code analysis
-                withSonarQubeEnv('sonar-server') {
+                echo 'Running static code analysis...'
+                withSonarQubeEnv("${env.SONARQUBE_ENV}") {
                     sh 'mvn sonar:sonar'
                 }
             }
             post {
                 failure {
-                    emailext body: 'Code analysis failed! Check Jenkins for details.', subject: 'Code Analysis Failed', to: 'angel4761.be23@chitkara.edu.in'
+                    emailext(
+                        subject: 'Code Analysis Failed',
+                        body: 'SonarQube scan failed. Please check the logs.',
+                        to: "${env.NOTIFY_EMAIL}"
+                    )
                 }
             }
         }
-        
-        // Stage 4: Security Scan
+
         stage('Security Scan') {
             steps {
-                echo 'Running security scan...'
-                // Using OWASP Dependency Check for security scanning
+                echo 'Running OWASP security scan...'
                 dependencyCheck additionalArguments: '--scan ./ --format XML --out ./', odcInstallation: 'OWASP-DC'
                 dependencyCheckPublisher pattern: 'dependency-check-report.xml'
             }
             post {
                 always {
-                    emailext body: 'Security scan completed. Status: ${currentBuild.currentResult}', 
-                            subject: 'Security Scan Results', 
-                            to: 'angel4761.be23@chitkara.edu.in',
-                            attachmentsPattern: 'dependency-check-report.xml'
+                    emailext(
+                        subject: 'Security Scan Completed',
+                        body: "Security scan result: ${currentBuild.currentResult}",
+                        to: "${env.NOTIFY_EMAIL}",
+                        attachmentsPattern: 'dependency-check-report.xml'
+                    )
                 }
             }
         }
-        
-        // Stage 5: Deploy to Staging
+
         stage('Deploy to Staging') {
             steps {
-                echo 'Deploying to staging environment...'
-                // Using AWS CLI to deploy to EC2
-                sh 'aws s3 cp target/myapp.jar s3://my-staging-bucket/'
-                sh 'aws ec2 run-instances --image-id ami-123456 --count 1 --instance-type t2.micro --key-name my-key-pair --security-group-ids sg-123456 --subnet-id subnet-123456'
+                echo 'Deploying to staging server...'
+                sh '''
+                    aws s3 cp target/myapp.jar s3://my-staging-bucket/
+                    # Optionally trigger deployment scripts here
+                '''
             }
         }
-        
-        // Stage 6: Integration Tests on Staging
+
         stage('Integration Tests on Staging') {
             steps {
-                echo 'Running integration tests on staging...'
-                // Using Selenium for UI tests on staging
+                echo 'Running staging integration tests...'
                 sh 'mvn verify -Denvironment=staging'
             }
         }
-        
-        // Stage 7: Deploy to Production
+
         stage('Deploy to Production') {
             steps {
-                echo 'Deploying to production environment...'
-                // Using AWS CLI to deploy to EC2
-                sh 'aws s3 cp target/myapp.jar s3://my-production-bucket/'
-                sh 'aws ec2 run-instances --image-id ami-123456 --count 1 --instance-type t2.micro --key-name my-key-pair --security-group-ids sg-123456 --subnet-id subnet-123456'
+                echo 'Deploying to production server...'
+                sh '''
+                    aws s3 cp target/myapp.jar s3://my-production-bucket/
+                    # Optionally add deployment triggers
+                '''
             }
         }
     }
-    
+
     post {
         always {
-            echo 'Pipeline completed.'
+            echo 'Sending final pipeline status email...'
+            emailext(
+                subject: "Pipeline Completed: ${env.JOB_NAME} [#${env.BUILD_NUMBER}]",
+                body: "Full details at: ${env.BUILD_URL}",
+                to: "${env.NOTIFY_EMAIL}"
+            )
         }
     }
 }
