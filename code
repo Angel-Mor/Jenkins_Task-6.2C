@@ -2,89 +2,73 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven 3.8.5' // Ensure this matches your Jenkins Maven installation name
-    }
-
-    environment {
-        NOTIFY_EMAIL = 'angel4761.be23@chitkara.edu.in'
+        maven 'M3'  // Must match exact name of Maven installation in Jenkins
     }
 
     stages {
         stage('Build') {
             steps {
-                echo 'Building the application using Maven...'
+                echo 'Building the application...'
                 sh 'mvn clean package'
             }
             post {
                 failure {
-                    emailext(
-                        subject: 'Build Failed - ${JOB_NAME}',
-                        body: 'Build stage failed. Please check Jenkins logs.\n\nBuild URL: ${BUILD_URL}',
-                        to: "${env.NOTIFY_EMAIL}"
-                    )
+                    mail to: 'angel4761.be23@chitkara.edu.in',
+                         subject: 'Build Failed - ${JOB_NAME}',
+                         body: 'Build stage failed. Maven not found or build failed.\n\nBuild URL: ${BUILD_URL}'
                 }
             }
         }
 
         stage('Unit and Integration Tests') {
             steps {
-                echo 'Running unit and integration tests using JUnit...'
+                echo 'Running unit and integration tests...'
                 sh 'mvn test'
             }
             post {
                 always {
                     junit '**/target/surefire-reports/*.xml'
-                    emailext(
-                        subject: 'Test Results - ${JOB_NAME}',
-                        body: 'Unit and Integration Tests completed. Status: ${currentBuild.currentResult}\n\nBuild URL: ${BUILD_URL}',
-                        to: "${env.NOTIFY_EMAIL}",
-                        attachmentsPattern: '**/target/surefire-reports/*.xml'
-                    )
+                    mail to: 'angel4761.be23@chitkara.edu.in',
+                         subject: 'Test Results - ${JOB_NAME}',
+                         body: 'Tests completed. Status: ${currentBuild.currentResult}\n\nBuild URL: ${BUILD_URL}',
+                         attachLog: true
                 }
             }
         }
 
         stage('Code Analysis') {
             steps {
-                echo 'Performing static code analysis using SonarQube...'
-                withSonarQubeEnv('sonar-server') {
-                    sh 'mvn sonar:sonar'
-                }
+                echo 'Running code analysis...'
+                sh 'mvn sonar:sonar -Dsonar.projectKey=jenkins-task'
             }
             post {
                 failure {
-                    emailext(
-                        subject: 'Code Analysis Failed - ${JOB_NAME}',
-                        body: 'SonarQube analysis failed. Please check Jenkins logs.\n\nBuild URL: ${BUILD_URL}',
-                        to: "${env.NOTIFY_EMAIL}"
-                    )
+                    mail to: 'angel4761.be23@chitkara.edu.in',
+                         subject: 'Code Analysis Failed - ${JOB_NAME}',
+                         body: 'Code analysis failed. Check Jenkins logs.\n\nBuild URL: ${BUILD_URL}'
                 }
             }
         }
 
         stage('Security Scan') {
             steps {
-                echo 'Running security scan using OWASP Dependency-Check...'
-                dependencyCheck additionalArguments: '--scan ./ --format XML --out ./', odcInstallation: 'OWASP-DC'
-                dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+                echo 'Running security scan...'
+                sh 'mvn dependency-check:check'
             }
             post {
                 always {
-                    emailext(
-                        subject: 'Security Scan Results - ${JOB_NAME}',
-                        body: 'Security scan completed. Status: ${currentBuild.currentResult}\n\nBuild URL: ${BUILD_URL}',
-                        to: "${env.NOTIFY_EMAIL}",
-                        attachmentsPattern: 'dependency-check-report.xml'
-                    )
+                    mail to: 'angel4761.be23@chitkara.edu.in',
+                         subject: 'Security Scan Results - ${JOB_NAME}',
+                         body: 'Security scan completed. Status: ${currentBuild.currentResult}\n\nBuild URL: ${BUILD_URL}',
+                         attachLog: true
                 }
             }
         }
 
         stage('Deploy to Staging') {
             steps {
-                echo 'Deploying application to staging server...'
-                // Replace with your actual deployment commands
-                sh 'echo "Simulating deployment to staging environment"'
+                echo 'Deploying to staging environment...'
+                sh 'echo "Simulating deployment to staging"'
             }
         }
 
@@ -97,21 +81,9 @@ pipeline {
 
         stage('Deploy to Production') {
             steps {
-                echo 'Deploying application to production server...'
-                // Replace with your actual deployment commands
-                sh 'echo "Simulating deployment to production environment"'
+                echo 'Deploying to production environment...'
+                sh 'echo "Simulating deployment to production"'
             }
-        }
-    }
-
-    post {
-        always {
-            echo 'Pipeline completed.'
-            emailext(
-                subject: 'Pipeline Completed - ${JOB_NAME} #${BUILD_NUMBER}',
-                body: 'Pipeline execution finished. Final Status: ${currentBuild.currentResult}\n\nBuild URL: ${BUILD_URL}',
-                to: "${env.NOTIFY_EMAIL}"
-            )
         }
     }
 }
