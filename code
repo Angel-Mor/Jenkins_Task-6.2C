@@ -1,87 +1,61 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven 3.8.5' // Ensure this matches the name configured in Jenkins
-    }
-
-    environment {
-        SONARQUBE_ENV = 'sonar-server'
-        NOTIFY_EMAIL = 'angel4761.be23@chitkara.edu.in'
-    }
-
     stages {
-
         stage('Build') {
             steps {
                 echo 'Building the application...'
                 sh 'mvn clean package'
             }
             post {
-                success {
-                    echo 'Build successful.'
-                }
                 failure {
-                    echo 'Build failed.'
-                    emailext(
-                        subject: 'Build Failed',
-                        body: 'Build stage failed. Please review Jenkins logs.',
-                        to: "${env.NOTIFY_EMAIL}"
-                    )
+                    emailext body: 'Build stage failed! Check Jenkins for details.', subject: 'Build Failed', to: 'angel4761.be23@chitkara.edu.in'
                 }
             }
         }
 
         stage('Unit and Integration Tests') {
             steps {
-                echo 'Running tests (JUnit/TestNG)...'
+                echo 'Running unit and integration tests...'
                 sh 'mvn test'
             }
             post {
                 always {
                     junit '**/target/surefire-reports/*.xml'
-                    emailext(
-                        subject: 'Test Results',
-                        body: "Tests completed. Result: ${currentBuild.currentResult}",
-                        to: "${env.NOTIFY_EMAIL}",
-                        attachmentsPattern: '**/target/surefire-reports/*.xml'
-                    )
+                    emailext body: 'Unit and Integration Tests completed. Status: ${currentBuild.currentResult}', 
+                            subject: 'Test Results', 
+                            to: 'angel4761.be23@chitkara.edu.in',
+                            attachmentsPattern: '**/target/surefire-reports/*.xml'
                 }
             }
         }
 
         stage('Code Analysis') {
             steps {
-                echo 'Running static code analysis...'
-                withSonarQubeEnv("${env.SONARQUBE_ENV}") {
+                echo 'Running code analysis...'
+                withSonarQubeEnv('sonar-server') {
                     sh 'mvn sonar:sonar'
                 }
             }
             post {
                 failure {
-                    emailext(
-                        subject: 'Code Analysis Failed',
-                        body: 'SonarQube scan failed. Please check the logs.',
-                        to: "${env.NOTIFY_EMAIL}"
-                    )
+                    emailext body: 'Code analysis failed! Check Jenkins for details.', subject: 'Code Analysis Failed', to: 'angel4761.be23@chitkara.edu.in'
                 }
             }
         }
 
         stage('Security Scan') {
             steps {
-                echo 'Running OWASP security scan...'
+                echo 'Running security scan...'
                 dependencyCheck additionalArguments: '--scan ./ --format XML --out ./', odcInstallation: 'OWASP-DC'
                 dependencyCheckPublisher pattern: 'dependency-check-report.xml'
             }
             post {
                 always {
-                    emailext(
-                        subject: 'Security Scan Completed',
-                        body: "Security scan result: ${currentBuild.currentResult}",
-                        to: "${env.NOTIFY_EMAIL}",
-                        attachmentsPattern: 'dependency-check-report.xml'
-                    )
+                    emailext body: 'Security scan completed. Status: ${currentBuild.currentResult}', 
+                            subject: 'Security Scan Results', 
+                            to: 'angel4761.be23@chitkara.edu.in',
+                            attachmentsPattern: 'dependency-check-report.xml'
                 }
             }
         }
@@ -89,16 +63,13 @@ pipeline {
         stage('Deploy to Staging') {
             steps {
                 echo 'Deploying to staging environment...'
-                sh '''
-                    aws s3 cp target/myapp.jar s3://my-staging-bucket/
-                    aws ec2 run-instances --image-id ami-123456 --count 1 --instance-type t2.micro --key-name my-key-pair --security-group-ids sg-123456 --subnet-id subnet-123456
-                '''
+                sh 'echo "Simulating deployment to staging"'
             }
         }
 
         stage('Integration Tests on Staging') {
             steps {
-                echo 'Running staging integration tests...'
+                echo 'Running integration tests on staging...'
                 sh 'mvn verify -Denvironment=staging'
             }
         }
@@ -106,22 +77,8 @@ pipeline {
         stage('Deploy to Production') {
             steps {
                 echo 'Deploying to production environment...'
-                sh '''
-                    aws s3 cp target/myapp.jar s3://my-production-bucket/
-                    aws ec2 run-instances --image-id ami-123456 --count 1 --instance-type t2.micro --key-name my-key-pair --security-group-ids sg-123456 --subnet-id subnet-123456
-                '''
+                sh 'echo "Simulating deployment to production"'
             }
-        }
-    }
-
-    post {
-        always {
-            echo 'Pipeline completed.'
-            mail(
-                subject: "Pipeline Completed: ${env.JOB_NAME} [#${env.BUILD_NUMBER}]",
-                body: "Pipeline execution finished. Details at: ${env.BUILD_URL}",
-                to: "${env.NOTIFY_EMAIL}"
-            )
         }
     }
 }
