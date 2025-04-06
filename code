@@ -1,75 +1,127 @@
 pipeline {
     agent any
+    
+    tools {
+        maven 'Maven 3.8.5' // Make sure this name matches your Jenkins Maven tool config
+    }
+
+    environment {
+        SONARQUBE_ENV = 'sonar-server' // Jenkins SonarQube config name
+        NOTIFY_EMAIL = 'angel4761.be23@chitkara.edu.in'
+    }
 
     stages {
+
         stage('Build') {
             steps {
-                script {
-                    echo 'Building the application using Maven...'
-                    echo 'Tool: Maven (for Java builds), npm (for Node.js), or Gradle'
+                echo 'Building the application...'
+                sh 'mvn clean package'
+            }
+            post {
+                success {
+                    echo 'Build successful!'
+                }
+                failure {
+                    echo 'Build failed.'
+                    emailext(
+                        subject: 'Build Failed',
+                        body: 'Build stage failed. Please review Jenkins logs.',
+                        to: "${env.NOTIFY_EMAIL}"
+                    )
                 }
             }
         }
+
         stage('Unit and Integration Tests') {
             steps {
-                script {
-                    echo 'Running unit and integration tests using JUnit and Selenium...'
-                    echo 'Tools: JUnit (Java), PyTest (Python), or Selenium (UI testing)'
+                echo 'Running tests (JUnit/TestNG)...'
+                sh 'mvn test'
+            }
+            post {
+                always {
+                    junit '**/target/surefire-reports/*.xml'
+                    emailext(
+                        subject: 'Test Results',
+                        body: "Tests completed. Result: ${currentBuild.currentResult}",
+                        to: "${env.NOTIFY_EMAIL}",
+                        attachmentsPattern: '**/target/surefire-reports/*.xml'
+                    )
                 }
             }
         }
+
         stage('Code Analysis') {
             steps {
-                script {
-                    echo 'Performing static code analysis using SonarQube...'
-                    echo 'Tool: SonarQube or ESLint (for JavaScript), Pylint (for Python)'
+                echo 'Running static code analysis...'
+                withSonarQubeEnv("${env.SONARQUBE_ENV}") {
+                    sh 'mvn sonar:sonar'
+                }
+            }
+            post {
+                failure {
+                    emailext(
+                        subject: 'Code Analysis Failed',
+                        body: 'SonarQube scan failed. Please check the logs.',
+                        to: "${env.NOTIFY_EMAIL}"
+                    )
                 }
             }
         }
+
         stage('Security Scan') {
             steps {
-                script {
-                    echo 'Running security scan using OWASP ZAP...'
-                    echo 'Tool: OWASP ZAP, Snyk, or Trivy (container security)'
+                echo 'Running OWASP security scan...'
+                dependencyCheck additionalArguments: '--scan ./ --format XML --out ./', odcInstallation: 'OWASP-DC'
+                dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+            }
+            post {
+                always {
+                    emailext(
+                        subject: 'Security Scan Completed',
+                        body: "Security scan result: ${currentBuild.currentResult}",
+                        to: "${env.NOTIFY_EMAIL}",
+                        attachmentsPattern: 'dependency-check-report.xml'
+                    )
                 }
             }
         }
+
         stage('Deploy to Staging') {
             steps {
-                script {
-                    echo 'Deploying application to staging server using Docker and Kubernetes...'
-                    echo 'Tool: Docker, Kubernetes, or Ansible'
-                }
+                echo 'Deploying to staging server...'
+                sh '''
+                    aws s3 cp target/myapp.jar s3://my-staging-bucket/
+                    # Optionally trigger deployment scripts here
+                '''
             }
         }
+
         stage('Integration Tests on Staging') {
             steps {
-                script {
-                    echo 'Running integration tests on staging using Postman or Newman...'
-                    echo 'Tool: Postman, Newman, or RestAssured'
-                }
+                echo 'Running staging integration tests...'
+                sh 'mvn verify -Denvironment=staging'
             }
         }
+
         stage('Deploy to Production') {
             steps {
-                script {
-                    echo 'Deploying application to production server using Jenkins and Kubernetes...'
-                    echo 'Tool: Jenkins, Docker, Kubernetes, or Ansible'
-                }
+                echo 'Deploying to production server...'
+                sh '''
+                    aws s3 cp target/myapp.jar s3://my-production-bucket/
+                    # Optionally add deployment triggers
+                '''
             }
         }
     }
 
     post {
         always {
-            script {
-                echo 'Sending email notification using Jenkins Email Extension Plugin...'
-                mail (
-                    subject: "Pipeline Notification: ${JOB_NAME} - Build #${BUILD_NUMBER}",
-                    body: "The pipeline has completed. Check details at: ${BUILD_URL}",
-                    to: 'angel4761.be23@chitkara.edu.in'
-                )
-            }
+            echo 'Sending final pipeline status email...'
+            emailext(
+                subject: "Pipeline Completed: ${env.JOB_NAME} [#${env.BUILD_NUMBER}]",
+                body: "Full details at: ${https://github.com/Angel-Mor/Jenkins_Task-6.2C}",
+                to: "${agel4761.be23@chitkara.rdu.in}"
+            )
         }
     }
 }
