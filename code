@@ -1,0 +1,110 @@
+pipeline {
+    agent any
+    
+    stages {
+        // Stage 1: Build
+        stage('Build') {
+            steps {
+                echo 'Building the application...'
+                // Using Maven as build tool
+                sh 'mvn clean package'
+            }
+            post {
+                success {
+                    echo 'Build succeeded!'
+                }
+                failure {
+                    echo 'Build failed!'
+                    emailext body: 'Build stage failed! Check Jenkins for details.', subject: 'Build Failed', to: 'your-email@example.com'
+                }
+            }
+        }
+        
+        // Stage 2: Unit and Integration Tests
+        stage('Unit and Integration Tests') {
+            steps {
+                echo 'Running unit and integration tests...'
+                // Using JUnit for unit tests and TestNG for integration tests
+                sh 'mvn test'
+            }
+            post {
+                always {
+                    junit '**/target/surefire-reports/*.xml'
+                    emailext body: 'Unit and Integration Tests completed. Status: ${currentBuild.currentResult}', 
+                            subject: 'Test Results', 
+                            to: 'your-email@example.com',
+                            attachmentsPattern: '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
+        
+        // Stage 3: Code Analysis
+        stage('Code Analysis') {
+            steps {
+                echo 'Running code analysis...'
+                // Using SonarQube for code analysis
+                withSonarQubeEnv('sonar-server') {
+                    sh 'mvn sonar:sonar'
+                }
+            }
+            post {
+                failure {
+                    emailext body: 'Code analysis failed! Check Jenkins for details.', subject: 'Code Analysis Failed', to: 'your-email@example.com'
+                }
+            }
+        }
+        
+        // Stage 4: Security Scan
+        stage('Security Scan') {
+            steps {
+                echo 'Running security scan...'
+                // Using OWASP Dependency Check for security scanning
+                dependencyCheck additionalArguments: '--scan ./ --format XML --out ./', odcInstallation: 'OWASP-DC'
+                dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+            }
+            post {
+                always {
+                    emailext body: 'Security scan completed. Status: ${currentBuild.currentResult}', 
+                            subject: 'Security Scan Results', 
+                            to: 'your-email@example.com',
+                            attachmentsPattern: 'dependency-check-report.xml'
+                }
+            }
+        }
+        
+        // Stage 5: Deploy to Staging
+        stage('Deploy to Staging') {
+            steps {
+                echo 'Deploying to staging environment...'
+                // Using AWS CLI to deploy to EC2
+                sh 'aws s3 cp target/myapp.jar s3://my-staging-bucket/'
+                sh 'aws ec2 run-instances --image-id ami-123456 --count 1 --instance-type t2.micro --key-name my-key-pair --security-group-ids sg-123456 --subnet-id subnet-123456'
+            }
+        }
+        
+        // Stage 6: Integration Tests on Staging
+        stage('Integration Tests on Staging') {
+            steps {
+                echo 'Running integration tests on staging...'
+                // Using Selenium for UI tests on staging
+                sh 'mvn verify -Denvironment=staging'
+            }
+        }
+        
+        // Stage 7: Deploy to Production
+        stage('Deploy to Production') {
+            steps {
+                echo 'Deploying to production environment...'
+                // Using AWS CLI to deploy to EC2
+                sh 'aws s3 cp target/myapp.jar s3://my-production-bucket/'
+                sh 'aws ec2 run-instances --image-id ami-123456 --count 1 --instance-type t2.micro --key-name my-key-pair --security-group-ids sg-123456 --subnet-id subnet-123456'
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo 'Pipeline completed.'
+        }
+    }
+}
