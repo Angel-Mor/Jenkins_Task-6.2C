@@ -2,18 +2,22 @@ pipeline {
     agent any
 
     stages {
+        stage('Check Maven Installation') {
+            steps {
+                script {
+                    // Verify Maven is installed and in PATH
+                    def mavenHome = tool name: 'maven-3.8.5', type: 'maven'
+                    env.PATH = "${mavenHome}/bin:${env.PATH}"
+                    sh 'mvn --version'
+                }
+            }
+        }
+
         stage('Build') {
             steps {
                 script {
                     echo 'Building the application using Maven...'
-                    try {
-                        sh 'mvn --version'
-                        sh 'mvn clean package'
-                    } catch (Exception e) {
-                        echo 'Maven build failed'
-                        currentBuild.result = 'FAILURE'
-                        error('Build failed')
-                    }
+                    sh 'mvn clean package'
                 }
             }
             post {
@@ -28,13 +32,14 @@ pipeline {
         stage('Unit and Integration Tests') {
             steps {
                 script {
-                    echo 'Running unit and integration tests using JUnit...'
+                    echo 'Running unit and integration tests...'
                     sh 'mvn test'
                 }
             }
             post {
                 always {
                     junit '**/target/surefire-reports/*.xml'
+                    archiveArtifacts artifacts: '**/target/surefire-reports/*.xml', allowEmptyArchive: true
                     mail to: 'angel4761.be23@chitkara.edu.in',
                          subject: "Test Results - ${env.JOB_NAME}",
                          body: "Tests completed. Status: ${currentBuild.currentResult}\n\nBuild URL: ${env.BUILD_URL}"
@@ -45,15 +50,8 @@ pipeline {
         stage('Code Analysis') {
             steps {
                 script {
-                    echo 'Performing static code analysis using SonarQube...'
+                    echo 'Performing static code analysis...'
                     sh 'mvn sonar:sonar -Dsonar.projectKey=jenkins-task'
-                }
-            }
-            post {
-                failure {
-                    mail to: 'angel4761.be23@chitkara.edu.in',
-                         subject: "Code Analysis Failed - ${env.JOB_NAME}",
-                         body: "SonarQube analysis failed. Please check Jenkins logs.\n\nBuild URL: ${env.BUILD_URL}"
                 }
             }
         }
@@ -61,8 +59,9 @@ pipeline {
         stage('Security Scan') {
             steps {
                 script {
-                    echo 'Running security scan using OWASP Dependency-Check...'
+                    echo 'Running security scan...'
                     sh 'mvn org.owasp:dependency-check-maven:check'
+                    archiveArtifacts artifacts: '**/target/dependency-check-report.html', allowEmptyArchive: true
                 }
             }
             post {
@@ -78,7 +77,8 @@ pipeline {
             steps {
                 script {
                     echo 'Deploying to staging environment...'
-                    sh 'echo "Simulating deployment to staging"'
+                    // Replace with actual deployment commands
+                    sh 'echo "Simulated deployment to staging"'
                 }
             }
         }
@@ -96,9 +96,16 @@ pipeline {
             steps {
                 script {
                     echo 'Deploying to production environment...'
-                    sh 'echo "Simulating deployment to production"'
+                    // Replace with actual deployment commands
+                    sh 'echo "Simulated deployment to production"'
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline completed. Cleaning up...'
         }
     }
 }
