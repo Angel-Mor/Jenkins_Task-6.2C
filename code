@@ -1,88 +1,103 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'M3'  // Must match exact name of Maven installation in Jenkins
-    }
-
     stages {
         stage('Build') {
             steps {
-                echo 'Building the application...'
-                sh 'mvn clean package'
+                script {
+                    echo 'Building the application using Maven...'
+                    try {
+                        sh 'mvn --version'
+                        sh 'mvn clean package'
+                    } catch (Exception e) {
+                        echo 'Maven build failed'
+                        currentBuild.result = 'FAILURE'
+                        error('Build failed')
+                    }
+                }
             }
             post {
                 failure {
                     mail to: 'angel4761.be23@chitkara.edu.in',
-                         subject: 'Build Failed - ${JOB_NAME}',
-                         body: 'Build stage failed. Maven not found or build failed.\n\nBuild URL: ${BUILD_URL}'
+                         subject: "Build Failed - ${env.JOB_NAME}",
+                         body: "Build stage failed. Please check Jenkins logs.\n\nBuild URL: ${env.BUILD_URL}"
                 }
             }
         }
 
         stage('Unit and Integration Tests') {
             steps {
-                echo 'Running unit and integration tests...'
-                sh 'mvn test'
+                script {
+                    echo 'Running unit and integration tests using JUnit...'
+                    sh 'mvn test'
+                }
             }
             post {
                 always {
                     junit '**/target/surefire-reports/*.xml'
                     mail to: 'angel4761.be23@chitkara.edu.in',
-                         subject: 'Test Results - ${JOB_NAME}',
-                         body: 'Tests completed. Status: ${currentBuild.currentResult}\n\nBuild URL: ${BUILD_URL}',
-                         attachLog: true
+                         subject: "Test Results - ${env.JOB_NAME}",
+                         body: "Tests completed. Status: ${currentBuild.currentResult}\n\nBuild URL: ${env.BUILD_URL}"
                 }
             }
         }
 
         stage('Code Analysis') {
             steps {
-                echo 'Running code analysis...'
-                sh 'mvn sonar:sonar -Dsonar.projectKey=jenkins-task'
+                script {
+                    echo 'Performing static code analysis using SonarQube...'
+                    sh 'mvn sonar:sonar -Dsonar.projectKey=jenkins-task'
+                }
             }
             post {
                 failure {
                     mail to: 'angel4761.be23@chitkara.edu.in',
-                         subject: 'Code Analysis Failed - ${JOB_NAME}',
-                         body: 'Code analysis failed. Check Jenkins logs.\n\nBuild URL: ${BUILD_URL}'
+                         subject: "Code Analysis Failed - ${env.JOB_NAME}",
+                         body: "SonarQube analysis failed. Please check Jenkins logs.\n\nBuild URL: ${env.BUILD_URL}"
                 }
             }
         }
 
         stage('Security Scan') {
             steps {
-                echo 'Running security scan...'
-                sh 'mvn dependency-check:check'
+                script {
+                    echo 'Running security scan using OWASP Dependency-Check...'
+                    sh 'mvn org.owasp:dependency-check-maven:check'
+                }
             }
             post {
                 always {
                     mail to: 'angel4761.be23@chitkara.edu.in',
-                         subject: 'Security Scan Results - ${JOB_NAME}',
-                         body: 'Security scan completed. Status: ${currentBuild.currentResult}\n\nBuild URL: ${BUILD_URL}',
-                         attachLog: true
+                         subject: "Security Scan Results - ${env.JOB_NAME}",
+                         body: "Security scan completed. Status: ${currentBuild.currentResult}\n\nBuild URL: ${env.BUILD_URL}"
                 }
             }
         }
 
         stage('Deploy to Staging') {
             steps {
-                echo 'Deploying to staging environment...'
-                sh 'echo "Simulating deployment to staging"'
+                script {
+                    echo 'Deploying to staging environment...'
+                    sh 'echo "Simulating deployment to staging"'
+                }
             }
         }
 
         stage('Integration Tests on Staging') {
             steps {
-                echo 'Running integration tests on staging...'
-                sh 'mvn verify -Denvironment=staging'
+                script {
+                    echo 'Running integration tests on staging...'
+                    sh 'mvn verify -Denvironment=staging'
+                }
             }
         }
 
         stage('Deploy to Production') {
             steps {
-                echo 'Deploying to production environment...'
-                sh 'echo "Simulating deployment to production"'
+                script {
+                    echo 'Deploying to production environment...'
+                    sh 'echo "Simulating deployment to production"'
+                }
             }
         }
     }
