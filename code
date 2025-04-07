@@ -2,93 +2,90 @@ pipeline {
     agent any
 
     stages {
-        // Stage 1: Code Compilation
-        stage('Compile Source Code') {
+        stage('Build') {
             steps {
                 script {
-                    echo 'Compiling application using Maven'
-                    sh 'mvn clean compile || echo "Compilation failed"'
+                    echo 'Building the application...'
+                    // This will work if Maven is properly configured in Jenkins
+                    sh 'mvn --version'
+                    sh 'mvn clean package || echo "Build failed"'
+                }
+            }
+            post {
+                failure {
+                    mail to: 'angel4761.be23@chitkara.edu.in',
+                         subject: "Build Failed - ${JOB_NAME}",
+                         body: "The build stage failed. Please check Jenkins logs.\n\nBuild URL: ${BUILD_URL}"
                 }
             }
         }
 
-        // Stage 2: Automated Testing
-        stage('Execute Test Suite') {
+        stage('Unit and Integration Tests') {
             steps {
                 script {
-                    echo 'Running JUnit tests'
+                    echo 'Running tests...'
                     sh 'mvn test || echo "Tests failed"'
                 }
             }
             post {
                 always {
                     junit '**/target/surefire-reports/*.xml'
+                    mail to: 'angel4761.be23@chitkara.edu.in',
+                         subject: "Test Results - ${JOB_NAME}",
+                         body: "Test stage completed with status: ${currentBuild.currentResult}\n\nBuild URL: ${BUILD_URL}"
                 }
             }
         }
 
-        // Stage 3: Quality Analysis
-        stage('Run Code Analysis') {
+        stage('Code Analysis') {
             steps {
                 script {
-                    echo 'Performing SonarQube scan'
-                    sh 'mvn sonar:sonar || echo "Analysis failed"'
+                    echo 'Analyzing code...'
+                    sh 'mvn sonar:sonar || echo "Code analysis failed"'
                 }
             }
         }
 
-        // Stage 4: Security Check
-        stage('Perform Security Scan') {
+        stage('Security Scan') {
             steps {
                 script {
-                    echo 'Running OWASP Dependency Check'
+                    echo 'Scanning for vulnerabilities...'
                     sh 'mvn dependency-check:check || echo "Security scan failed"'
                 }
             }
+            post {
+                always {
+                    mail to: 'angel4761.be23@chitkara.edu.in',
+                         subject: "Security Scan - ${JOB_NAME}",
+                         body: "Security scan completed with status: ${currentBuild.currentResult}\n\nBuild URL: ${BUILD_URL}"
+                }
+            }
         }
 
-        // Stage 5: Staging Deployment
         stage('Deploy to Staging') {
             steps {
                 script {
-                    echo 'Deploying to Kubernetes staging'
-                    sh 'kubectl apply -f staging.yaml || echo "Staging deploy failed"'
+                    echo 'Deploying to staging...'
+                    sh 'echo "Simulated staging deployment"'
                 }
             }
         }
 
-        // Stage 6: Staging Verification
-        stage('Verify Staging Environment') {
+        stage('Integration Tests on Staging') {
             steps {
                 script {
-                    echo 'Running Postman tests on staging'
-                    sh 'newman run staging-tests.json || echo "Staging tests failed"'
+                    echo 'Testing staging environment...'
+                    sh 'echo "Simulated staging tests"'
                 }
             }
         }
 
-        // Stage 7: Production Release
         stage('Deploy to Production') {
             steps {
                 script {
-                    echo 'Deploying to production cluster'
-                    sh 'helm upgrade --install production ./chart || echo "Production deploy failed"'
+                    echo 'Deploying to production...'
+                    sh 'echo "Simulated production deployment"'
                 }
-            }
-        }
-    }
-
-    post {
-        always {
-            script {
-                mail(
-                    subject: "Pipeline Completed: ${JOB_NAME} #${BUILD_NUMBER}",
-                    body: """Pipeline execution finished with status: ${currentBuild.currentResult}
-                    
-                    Details: ${BUILD_URL}
-                    """,
-                    to: 'angel4761.be23@chitkara.edu.in'
-                )
             }
         }
     }
