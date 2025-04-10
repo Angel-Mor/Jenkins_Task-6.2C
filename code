@@ -5,7 +5,7 @@ pipeline {
         stage('Initialize Build') {
             steps {
                 echo 'Starting the build process...'
-                git branch: 'main', url: 'https://github.com/Ritish2-hash/6.2c.git'
+                git branch: 'main', url: 'https://github.com/Angel-Mor/Jenkins_Task-6.2C.git'
                 echo 'Building the code using Maven...'
             }
         }
