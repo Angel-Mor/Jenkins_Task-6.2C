@@ -52,7 +52,7 @@ pipeline {
             script {
                 def powershellCommand = '''
                 $SMTPServer = "smtp.gmail.com"
-                $SMTPPort = 587
+                $SMTPPort = 465
                 $SMTPFrom = "angel4761.be23@chitkara.edu.in"
                 $SMTPTo = "angel4761.be23@chitkara.edu.in"
                 $SMTPSubject = "Pipeline Execution Success"
