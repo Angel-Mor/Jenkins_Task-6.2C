@@ -58,7 +58,7 @@ pipeline {
                 $SMTPSubject = "Pipeline Execution Success"
                 $SMTPBody = "The Jenkins pipeline completed successfully."
                 $SMTPUsername = "angel4761.be23@chitkara.edu.in"
-                $SMTPPassword = "zika urxx uaif wayj" 
+                $SMTPPassword = "nnde qfzj Inwy rmis" 
                 $SMTPEnableSSL = $true
 
                 $SMTPClient = New-Object Net.Mail.SmtpClient($SMTPServer, $SMTPPort)
