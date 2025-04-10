@@ -1,28 +1,38 @@
 pipeline {
     agent any
+    
+    tools {
+        // Must exactly match your Maven installation name in Jenkins
+        maven 'M3'  
+    }
 
     stages {
         stage('Initialize') {
             steps {
                 echo 'Starting CI/CD pipeline...'
-                cleanWs()
-                git branch: 'main', url: 'https://github.com/Angel-Mor/Jenkins_Task-6.2C.git'
-                echo 'Repository cloned successfully'
+                git branch: 'main', 
+                     url: 'https://github.com/Angel-Mor/Jenkins_Task-6.2C.git',
+                     credentialsId: '' // Add credential ID if private repo
+                dir('code') {  // Enter your code directory
+                    echo 'Repository cloned successfully'
+                }
             }
         }
 
         stage('Build') {
             steps {
-                echo 'Building application with Maven...'
-                script {
-                    try {
-                        sh 'mvn --version'
-                        sh 'mvn clean package'
-                        echo 'Build completed successfully'
-                    } catch (Exception e) {
-                        echo "Build failed: ${e}"
-                        currentBuild.result = 'FAILURE'
-                        error('Build stage failed')
+                dir('code') {  // Build inside your code directory
+                    echo 'Building application with Maven...'
+                    script {
+                        try {
+                            sh 'mvn --version'
+                            sh 'mvn clean package'
+                            echo 'Build completed successfully'
+                        } catch (Exception e) {
+                            echo "Build failed: ${e}"
+                            currentBuild.result = 'FAILURE'
+                            error('Build stage failed')
+                        }
                     }
                 }
             }
@@ -30,35 +40,41 @@ pipeline {
 
         stage('Unit Tests') {
             steps {
-                echo 'Running JUnit tests...'
-                script {
-                    sh 'mvn test'
-                    echo 'Unit tests executed'
+                dir('code') {
+                    echo 'Running JUnit tests...'
+                    script {
+                        sh 'mvn test'
+                        echo 'Unit tests executed'
+                    }
                 }
             }
             post {
                 always {
-                    junit '**/target/surefire-reports/*.xml'
+                    junit 'code/target/surefire-reports/*.xml'  // Updated path
                 }
             }
         }
 
         stage('Code Analysis') {
             steps {
-                echo 'Running SonarQube analysis...'
-                script {
-                    sh 'mvn sonar:sonar -Dsonar.projectKey=jenkins-task'
-                    echo 'Code analysis completed'
+                dir('code') {
+                    echo 'Running SonarQube analysis...'
+                    script {
+                        sh 'mvn sonar:sonar -Dsonar.projectKey=jenkins-task'
+                        echo 'Code analysis completed'
+                    }
                 }
             }
         }
 
         stage('Security Scan') {
             steps {
-                echo 'Running OWASP Dependency-Check...'
-                script {
-                    sh 'mvn dependency-check:check'
-                    echo 'Security scan completed'
+                dir('code') {
+                    echo 'Running OWASP Dependency-Check...'
+                    script {
+                        sh 'mvn dependency-check:check'
+                        echo 'Security scan completed'
+                    }
                 }
             }
         }
@@ -97,7 +113,7 @@ pipeline {
     post {
         always {
             echo 'Pipeline execution completed'
-            archiveArtifacts artifacts: '**/target/*.jar', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'code/target/*.jar', allowEmptyArchive: true
         }
         success {
             mail to: 'angel4761.be23@chitkara.edu.in',
