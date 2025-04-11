@@ -1,62 +1,75 @@
 pipeline {
     agent any
-    
+
     stages {
         stage('Build') {
             steps {
-                echo 'Building the code using Maven...'
+                script {
+                    echo '[Build Stage] Compiling and packaging application using Maven...'
+                    echo 'Using tool: Maven (you can switch to npm or Gradle based on your stack)'
+                }
             }
         }
-        
         stage('Unit and Integration Tests') {
             steps {
-                echo 'Running unit tests...'
-                echo 'Running integration tests...'
+                script {
+                    echo '[Test Stage] Running unit tests with JUnit and integration tests with Selenium...'
+                    echo 'Using tools: JUnit (for backend logic), Selenium (for UI flow)'
+                }
             }
         }
-        
         stage('Code Analysis') {
             steps {
-                echo 'Running code analysis using SonarQube...'
+                script {
+                    echo ' [Code Analysis Stage] Running static code analysis to enforce coding standards...'
+                    echo 'Using tool: SonarQube (for comprehensive multi-language analysis)'
+                }
             }
         }
-        
         stage('Security Scan') {
             steps {
-                echo 'Performing security scan using OWASP ZAP...'
+                script {
+                    echo ' [Security Scan Stage] Scanning for vulnerabilities and security issues...'
+                    echo 'Using tool: OWASP ZAP (or alternatives like Snyk, Trivy)'
+                }
             }
         }
-        
         stage('Deploy to Staging') {
             steps {
-                echo 'Deploying the application to staging server (e.g., AWS EC2 instance)...'
+                script {
+                    echo '🚀 [Staging Deploy Stage] Deploying application to the staging environment...'
+                    echo 'Using tool: Docker with Kubernetes or Ansible for environment automation'
+                }
             }
         }
-        
         stage('Integration Tests on Staging') {
             steps {
-                echo 'Running integration tests on staging environment...'
+                script {
+                    echo ' [Staging Test Stage] Running API/integration tests on the deployed staging app...'
+                    echo 'Using tool: Postman or Newman CLI for automated staging verification'
+                }
             }
         }
-        
         stage('Deploy to Production') {
             steps {
-                echo 'Deploying the application to production server (e.g., AWS EC2 instance)...'
+                script {
+                    echo ' [Production Deploy Stage] Final deployment to production environment...'
+                    echo 'Using tool: Jenkins + Docker/Kubernetes for smooth rollout'
+                }
             }
         }
     }
+
     post {
-        success {
-            emailext subject: "Pipeline '${currentBuild.fullDisplayName}' Successful",
-                      body: 'The build was successful. Congratulations!',
-                      to: 'angel4761.be23@chitkara.edu.in',
-                      attachLog: true
-        }
-        failure {
-            emailext subject: "Pipeline '${currentBuild.fullDisplayName}' Failed",
-                      body: 'The build has failed. Please investigate.',
-                      to: 'angel4761.be23@chitkara.edu.in',
-                      attachLog: true
+        always {
+            script {
+                echo 'Sending pipeline notification email to the developer team...'
+                mail (
+                    subject: "Pipeline Notification: ${JOB_NAME} - Build #${BUILD_NUMBER}",
+                    body: "The pipeline has completed. Check details at: ${BUILD_URL}",
+                    to: 'anmol4762.be23@chitkara.edu.in'
+                )
+            }
         }
     }
 }
