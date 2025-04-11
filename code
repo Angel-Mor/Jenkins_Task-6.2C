@@ -47,18 +47,16 @@ pipeline {
     }
     post {
         success {
-            mail (subject: "Pipeline '${currentBuild.fullDisplayName}' Successful",
+            emailext subject: "Pipeline '${currentBuild.fullDisplayName}' Successful",
                       body: 'The build was successful. Congratulations!',
                       to: 'angel4761.be23@chitkara.edu.in',
                       attachLog: true
-)
         }
         failure {
-            mail (subject: "Pipeline '${currentBuild.fullDisplayName}' Failed",
+            emailext subject: "Pipeline '${currentBuild.fullDisplayName}' Failed",
                       body: 'The build has failed. Please investigate.',
                       to: 'angel4761.be23@chitkara.edu.in',
                       attachLog: true
-)
         }
     }
 }
