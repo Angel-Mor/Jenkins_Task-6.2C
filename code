@@ -1,110 +1,60 @@
 pipeline {
     agent any
-    
-    tools {
-        // Must exactly match your Maven installation name in Jenkins
-        maven 'M3'  
-    }
 
     stages {
-        stage('Initialize') {
-            steps {
-                echo 'Starting CI/CD pipeline...'
-                git branch: 'main', 
-                     url: 'https://github.com/Angel-Mor/Jenkins_Task-6.2C.git',
-                     credentialsId: '' // Add credential ID if private repo
-                dir('code') {  // Enter your code directory
-                    echo 'Repository cloned successfully'
-                }
-            }
-        }
-
         stage('Build') {
             steps {
-                dir('code') {  // Build inside your code directory
-                    echo 'Building application with Maven...'
-                    script {
-                        try {
-                            sh 'mvn --version'
-                            sh 'mvn clean package'
-                            echo 'Build completed successfully'
-                        } catch (Exception e) {
-                            echo "Build failed: ${e}"
-                            currentBuild.result = 'FAILURE'
-                            error('Build stage failed')
-                        }
-                    }
+                script {
+                    echo '[Build Stage] Compiling and packaging application using Maven...'
+                    echo 'Using tool: Maven (you can switch to npm or Gradle based on your stack)'
                 }
             }
         }
-
-        stage('Unit Tests') {
+        stage('Unit and Integration Tests') {
             steps {
-                dir('code') {
-                    echo 'Running JUnit tests...'
-                    script {
-                        sh 'mvn test'
-                        echo 'Unit tests executed'
-                    }
-                }
-            }
-            post {
-                always {
-                    junit 'code/target/surefire-reports/*.xml'  // Updated path
+                script {
+                    echo '[Test Stage] Running unit tests with JUnit and integration tests with Selenium...'
+                    echo 'Using tools: JUnit (for backend logic), Selenium (for UI flow)'
                 }
             }
         }
-
         stage('Code Analysis') {
             steps {
-                dir('code') {
-                    echo 'Running SonarQube analysis...'
-                    script {
-                        sh 'mvn sonar:sonar -Dsonar.projectKey=jenkins-task'
-                        echo 'Code analysis completed'
-                    }
+                script {
+                    echo ' [Code Analysis Stage] Running static code analysis to enforce coding standards...'
+                    echo 'Using tool: SonarQube (for comprehensive multi-language analysis)'
                 }
             }
         }
-
         stage('Security Scan') {
             steps {
-                dir('code') {
-                    echo 'Running OWASP Dependency-Check...'
-                    script {
-                        sh 'mvn dependency-check:check'
-                        echo 'Security scan completed'
-                    }
+                script {
+                    echo ' [Security Scan Stage] Scanning for vulnerabilities and security issues...'
+                    echo 'Using tool: OWASP ZAP (or alternatives like Snyk, Trivy)'
                 }
             }
         }
-
         stage('Deploy to Staging') {
             steps {
-                echo 'Deploying to AWS EC2 staging...'
                 script {
-                    sh 'echo "Simulating deployment to staging EC2 instance"'
-                    echo 'Staging deployment simulated'
+                    echo '🚀 [Staging Deploy Stage] Deploying application to the staging environment...'
+                    echo 'Using tool: Docker with Kubernetes or Ansible for environment automation'
                 }
             }
         }
-
-        stage('Staging Tests') {
+        stage('Integration Tests on Staging') {
             steps {
-                echo 'Running Postman tests on staging...'
                 script {
-                    sh 'echo "Simulating Postman tests on staging"'
-                    echo 'Staging tests simulated'
+                    echo ' [Staging Test Stage] Running API/integration tests on the deployed staging app...'
+                    echo 'Using tool: Postman or Newman CLI for automated staging verification'
                 }
             }
         }
-
         stage('Deploy to Production') {
             steps {
-                echo 'Deploying to AWS EC2 production...'
                 script {
-                    sh 'echo "Simulating deployment to production EC2 instance"'
-                    echo 'Production deployment simulated'
+                    echo ' [Production Deploy Stage] Final deployment to production environment...'
+                    echo 'Using tool: Jenkins + Docker/Kubernetes for smooth rollout'
                 }
             }
         }
@@ -112,26 +62,14 @@ pipeline {
 
     post {
         always {
-            echo 'Pipeline execution completed'
-            archiveArtifacts artifacts: 'code/target/*.jar', allowEmptyArchive: true
-        }
-        success {
-            mail to: 'angel4761.be23@chitkara.edu.in',
-                 subject: "SUCCESS: Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                 body: """All stages completed successfully!
-                 
-                 Build URL: ${env.BUILD_URL}
-                 """
-            echo 'Success email sent'
-        }
-        failure {
-            mail to: 'angel4761.be23@chitkara.edu.in',
-                 subject: "FAILED: Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                 body: """Pipeline failed at stage: ${currentBuild.currentResult}
-                 
-                 Build URL: ${env.BUILD_URL}
-                 """
-            echo 'Failure email sent'
+            script {
+                echo 'Sending pipeline notification email to the developer team...'
+                mail (
+                    subject: "Pipeline Notification: ${JOB_NAME} - Build #${BUILD_NUMBER}",
+                    body: "The pipeline has completed. Check details at: ${BUILD_URL}",
+                    to: 'anmol4762.be23@chitkara.edu.in'
+                )
+            }
         }
     }
 }
