@@ -1,62 +1,80 @@
 pipeline {
     agent any
-    
+
     stages {
         stage('Build') {
             steps {
                 echo 'Building the code using Maven...'
             }
         }
-        
+
         stage('Unit and Integration Tests') {
             steps {
                 echo 'Running unit tests...'
                 echo 'Running integration tests...'
             }
         }
-        
+
         stage('Code Analysis') {
             steps {
                 echo 'Running code analysis using SonarQube...'
             }
         }
-        
+
         stage('Security Scan') {
             steps {
                 echo 'Performing security scan using OWASP ZAP...'
             }
         }
-        
+
         stage('Deploy to Staging') {
             steps {
                 echo 'Deploying the application to staging server (e.g., AWS EC2 instance)...'
             }
         }
-        
+
         stage('Integration Tests on Staging') {
             steps {
                 echo 'Running integration tests on staging environment...'
             }
         }
-        
+
         stage('Deploy to Production') {
             steps {
                 echo 'Deploying the application to production server (e.g., AWS EC2 instance)...'
             }
         }
     }
+
     post {
         success {
-            emailext subject: "Pipeline '${currentBuild.fullDisplayName}' Successful",
-                      body: 'The build was successful. Congratulations!',
-                      to: 'angel4761.be23@chitkara.edu.in',
-                      attachLog: true
+            emailext(
+                subject: "Pipeline '${env.JOB_NAME} [#${env.BUILD_NUMBER}]' Successful",
+                body: """
+                    <p>Hello Team,</p>
+                    <p>The Jenkins pipeline <strong>${env.JOB_NAME}</strong> build <strong>#${env.BUILD_NUMBER}</strong> completed successfully.</p>
+                    <p><a href="${env.BUILD_URL}">View Build Details</a></p>
+                    <p>Regards,<br>Jenkins</p>
+                """,
+                mimeType: 'text/html',
+                to: 'angel4761.be23@chitkara.edu.in',
+                attachLog: true
+            )
         }
+
         failure {
-            emailext subject: "Pipeline '${currentBuild.fullDisplayName}' Failed",
-                      body: 'The build has failed. Please investigate.',
-                      to: 'angel4761.be23@chitkara.edu.in',
-                      attachLog: true
+            emailext(
+                subject: "Pipeline '${env.JOB_NAME} [#${env.BUILD_NUMBER}]' Failed",
+                body: """
+                    <p>Hello Team,</p>
+                    <p>The Jenkins pipeline <strong>${env.JOB_NAME}</strong> build <strong>#${env.BUILD_NUMBER}</strong> has <strong>FAILED</strong>.</p>
+                    <p><a href="${env.BUILD_URL}">View Build Details</a></p>
+                    <p>Regards,<br>Jenkins</p>
+                """,
+                mimeType: 'text/html',
+                to: 'angel4761.be23@chitkara.edu.in',
+                attachLog: true
+            )
         }
     }
 }
