@@ -4,89 +4,78 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                echo 'Build: Using Maven to compile and package the code'
-                // Example: sh 'mvn clean install'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo 'Test: Running unit and integration tests with JUnit'
-                // Example: sh 'mvn test'
-            }
-            post {
-                always {
-                    emailext(
-                        subject: "Test Stage Result: ${currentBuild.fullDisplayName}",
-                        body: "Tests completed. Status: ${currentBuild.currentResult}\nBuild URL: ${env.BUILD_URL}",
-                        to: 'angel4761.be23@chitkara.edu.in',
-                        attachLog: true
-                    )
+                script {
+                    echo '[Build] Starting project build process using Maven...'
+                    echo 'Tool used: Maven (can be adapted to Gradle or npm as per tech stack)'
                 }
             }
         }
 
-        stage('Code Analysis') {
+        stage('Testing') {
             steps {
-                echo 'Code Analysis: Using SonarQube to check code quality'
-                // Example: sh 'mvn sonar:sonar'
-            }
-        }
-
-        stage('Security Scan') {
-            steps {
-                echo 'Security Scan: Using OWASP ZAP to check for vulnerabilities'
-                // Example: sh './zap-scan.sh'
-            }
-            post {
-                always {
-                    emailext(
-                        subject: "Security Scan Result: ${currentBuild.fullDisplayName}",
-                        body: "Security scan completed. Status: ${currentBuild.currentResult}\nBuild URL: ${env.BUILD_URL}",
-                        to: 'angel4761.be23@chitkara.edu.in',
-                        attachLog: true
-                    )
+                script {
+                    echo '[Testing] Executing unit tests with JUnit and integration tests using Selenium...'
+                    echo 'Tools involved: JUnit for backend logic and Selenium for UI validation'
                 }
             }
         }
 
-        stage('Deploy to Staging') {
+        stage('Static Code Analysis') {
             steps {
-                echo 'Deploy: Sending application to staging server'
-                // Example: sh './deploy-staging.sh'
+                script {
+                    echo '[Code Quality Check] Performing static code analysis to maintain code quality...'
+                    echo 'Selected tool: SonarQube'
+                }
             }
         }
 
-        stage('Test on Staging') {
+        stage('Security Verification') {
             steps {
-                echo 'Test: Running integration tests on staging server'
-                // Example: sh './run-tests.sh'
+                script {
+                    echo '[Security Audit] Running vulnerability assessment on the codebase...'
+                    echo 'Chosen tool: OWASP ZAP (others like Trivy/Snyk also valid)'
+                }
             }
         }
 
-        stage('Deploy to Production') {
+        stage('Staging Deployment') {
             steps {
-                echo 'Deploy: Sending application to production server'
-                // Example: sh './deploy-prod.sh'
+                script {
+                    echo '[Staging] Deploying application to test environment (staging)...'
+                    echo 'Deployment managed via Docker or automation tools like Ansible'
+                }
+            }
+        }
+
+        stage('Tests on Staging') {
+            steps {
+                script {
+                    echo '[Staging Verification] Validating deployed application through integration/API tests...'
+                    echo 'Tool: Postman CLI or Newman for automated testing'
+                }
+            }
+        }
+
+        stage('Production Deployment') {
+            steps {
+                script {
+                    echo '[Production] Deploying final version to live environment...'
+                    echo 'Using Jenkins and deployment tools like Docker or Kubernetes'
+                }
             }
         }
     }
 
     post {
-        success {
-            emailext(
-                subject: "Pipeline Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "The pipeline completed successfully.\nBuild URL: ${env.BUILD_URL}",
-                to: 'angel4761.be23@chitkara.edu.in'
-            )
-        }
-        failure {
-            emailext(
-                subject: "Pipeline Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "The pipeline failed. Check the logs for more info.\nBuild URL: ${env.BUILD_URL}",
-                to: 'angel4761.be23@chitkara.edu.in',
-                attachLog: true
-            )
+        always {
+            script {
+                echo 'Triggering email notification after pipeline execution...'
+                mail (
+                    subject: "Build Pipeline Completed: ${env.JOB_NAME} - Run #${env.BUILD_NUMBER}",
+                    body: "Hello,\n\nThe Jenkins pipeline has finished executing.\nCheck the result here: ${env.BUILD_URL}\n\nRegards,\nCI Server",
+                    to: 'angel4761.be23@chitkara.edu.in'
+                )
+            }
         }
     }
 }
