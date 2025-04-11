@@ -47,7 +47,7 @@ pipeline {
     }
     post {
         success {
-            emailext subject: "Pipeline '${currentBuild.fullDisplayName}' Successful",
+            mail subject: "Pipeline '${currentBuild.fullDisplayName}' Successful",
                       body: 'The build was successful. Congratulations!',
                       to: 'angel4761.be23@chitkara.edu.in',
                       attachLog: true
